@@ -98,7 +98,7 @@ class TrainEval:
         src_mask = generate_square_subsequent_mask(self.bptt).to(self.device)
         with torch.no_grad():
             for i in range(0, eval_data.size(0) - 1, self.bptt):
-                data, targets = get_batch(eval_data, i)
+                data, targets = get_batch(eval_data, i, self.bptt)
                 seq_len = data.size(0)
                 if seq_len != self.bptt:
                     src_mask = src_mask[:seq_len, :seq_len]

@@ -49,7 +49,7 @@ print("Training loop beginning...")
 trainer.train_model(epochs=3)
 print("Training complete.")
 print("Testing beginning....")
-test_loss = trainer.evaluate(trainer.model, test_data)
+test_loss = trainer.evaluate(test_data)
 test_ppl = math.exp(test_loss)
 print('=' * 89)
 print(f'| End of training | test loss {test_loss:5.2f} | '
