@@ -11,102 +11,33 @@ from typing import Tuple
 
 import torch
 from torch import nn, Tensor
-from torch.utils.data import dataset
 
 from layers import MyTransformer
+from loader import Batcher
+from loader import get_batch
 
 def generate_square_subsequent_mask(sz: int) -> Tensor:
     """Generates an upper-triangular matrix of -inf, with zeros on diag."""
     return torch.triu(torch.ones(sz, sz) * float('-inf'), diagonal=1)
 
-from torchtext.datasets import WikiText2
-from torchtext.data.utils import get_tokenizer
-from torchtext.vocab import build_vocab_from_iterator
-
-print("Loading datasets...")
-train_iter = WikiText2(split='train')
-tokenizer = get_tokenizer('basic_english')
-vocab = build_vocab_from_iterator(map(tokenizer, train_iter), specials=['<unk>'])
-vocab.set_default_index(vocab['<unk>'])
-
-def data_process(raw_text_iter: dataset.IterableDataset) -> Tensor:
-    """Converts raw text into a flat Tensor."""
-    data = [torch.tensor(vocab(tokenizer(item)), dtype=torch.long) for item in raw_text_iter]
-    return torch.cat(tuple(filter(lambda t: t.numel() > 0, data)))
-
-print("Reloading datasets...")
-# train_iter was "consumed" by the process of building the vocab,
-# so we have to create it again
-train_iter, val_iter, test_iter = WikiText2()
-train_data = data_process(train_iter)
-val_data = data_process(val_iter)
-test_data = data_process(test_iter)
-
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-print("Using device: "+('cuda' if torch.cuda.is_available() else 'cpu'))
-# Use GPU for reasonable training times.
-# CPU training on a 2015 MacBook Pro takes many hours, while 
-# a Google Colab GPU instance trains in about a minute.
-
-
-def batchify(data: Tensor, bsz: int) -> Tensor:
-    """Divides the data into bsz separate sequences, removing extra elements
-    that wouldn't cleanly fit.
-
-    Args:
-        data: Tensor, shape [N]
-        bsz: int, batch size
-
-    Returns:
-        Tensor of shape [N // bsz, bsz]
-    """
-    seq_len = data.size(0) // bsz
-    data = data[:seq_len * bsz]
-    data = data.view(bsz, seq_len).t().contiguous()
-    return data.to(device)
-
-
-print("Batchifying datasets...")
+b = Batcher()
 batch_size = 20
 eval_batch_size = 10
-train_data = batchify(train_data, batch_size)  # shape [seq_len, batch_size]
-val_data = batchify(val_data, eval_batch_size)
-test_data = batchify(test_data, eval_batch_size)
-
-
-
-
+train_data, val_data, test_data = b.generate(batch_size,eval_batch_size)
 bptt = 35
-def get_batch(source: Tensor, i: int) -> Tuple[Tensor, Tensor]:
-    """
-    Args:
-        source: Tensor, shape [full_seq_len, batch_size]
-        i: int
-
-    Returns:
-        tuple (data, target), where data has shape [seq_len, batch_size] and
-        target has shape [seq_len * batch_size]
-    """
-    seq_len = min(bptt, len(source) - 1 - i)
-    data = source[i:i+seq_len]
-    target = source[i+1:i+1+seq_len].reshape(-1)
-    return data, target
-
 
 print("Setting up transformer encoder model...")
-ntokens = len(vocab)  # size of vocabulary
+ntokens = len(b.proc.vocab)  # size of vocabulary
 emsize = 200  # embedding dimension
 d_hid = 200  # dimension of the feedforward network model in nn.TransformerEncoder
 nlayers = 2  # number of nn.TransformerEncoderLayer in nn.TransformerEncoder
 nhead = 2  # number of heads in nn.MultiheadAttention
 dropout = 0.2  # dropout probability
-model = MyTransformer(ntokens, emsize, nhead, d_hid, nlayers, dropout).to(device)
+model = MyTransformer(ntokens, emsize, nhead, d_hid, nlayers, dropout).to(b.device)
 
 print("Model details:")
 print("Vocab size: "+str(ntokens))
 
-
-import copy
 import time
 
 criterion = nn.CrossEntropyLoss()
@@ -128,11 +59,11 @@ def train(model: nn.Module) -> None:
     total_loss = 0.
     log_interval = 200
     start_time = time.time()
-    src_mask = generate_square_subsequent_mask(bptt).to(device)
+    src_mask = generate_square_subsequent_mask(bptt).to(b.device)
 
     num_batches = len(train_data) // bptt
     for batch, i in enumerate(range(0, train_data.size(0) - 1, bptt)):
-        data, targets = get_batch(train_data, i)
+        data, targets = get_batch(train_data, i, bptt)
         seq_len = data.size(0)
         if seq_len != bptt:  # only on last batch
             src_mask = src_mask[:seq_len, :seq_len]
@@ -161,7 +92,7 @@ def train(model: nn.Module) -> None:
 def evaluate(model: nn.Module, eval_data: Tensor) -> float:
     model.eval()  # turn on evaluation mode
     total_loss = 0.
-    src_mask = generate_square_subsequent_mask(bptt).to(device)
+    src_mask = generate_square_subsequent_mask(bptt).to(b.device)
     with torch.no_grad():
         for i in range(0, eval_data.size(0) - 1, bptt):
             data, targets = get_batch(eval_data, i)
