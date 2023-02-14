@@ -48,10 +48,7 @@ trainer = TrainEval(model, criterion, optimizer, scheduler, train_data, val_data
 print("Training loop beginning...")
 trainer.train_model(epochs=3)
 print("Training complete.")
-
-
 print("Testing beginning....")
-
 test_loss = trainer.evaluate(trainer.model, test_data)
 test_ppl = math.exp(test_loss)
 print('=' * 89)
