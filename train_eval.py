@@ -18,7 +18,7 @@ def generate_square_subsequent_mask(sz: int) -> Tensor:
 
 class TrainEval:
     def __init__(self, model, criterion, optimizer, scheduler, 
-                train_data, val_data, test_data, epochs, bptt, device, prof=None) -> None:
+                train_data, val_data, bptt, device, prof=None) -> None:
         self.model = model
         self.criterion = criterion
         self.optimizer = optimizer
@@ -26,7 +26,6 @@ class TrainEval:
         self.train_data = train_data
         self.val_data = val_data
         self.device = device
-        self.epochs = epochs
         self.bptt = bptt
         self.prof = prof
 
@@ -70,13 +69,14 @@ class TrainEval:
         if self.prof is not None:
             self.prof.stop()
 
-    def train_model(self):
+    def train_model(self, epochs):
+        best_val_loss = float('inf')
         with TemporaryDirectory() as tempdir:
             best_model_params_path = os.path.join(tempdir, "best_model_params.pt")
 
-            for epoch in range(1, self.epochs + 1):
+            for epoch in range(1, epochs + 1):
                 epoch_start_time = time.time()
-                self.train(self.model, epoch)
+                self.train(epoch)
                 val_loss = self.evaluate(self.val_data)
                 val_ppl = math.exp(val_loss)
                 elapsed = time.time() - epoch_start_time
