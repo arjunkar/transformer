@@ -16,10 +16,6 @@ from layers import MyTransformer
 from loader import Batcher
 from loader import get_batch
 
-def generate_square_subsequent_mask(sz: int) -> Tensor:
-    """Generates an upper-triangular matrix of -inf, with zeros on diag."""
-    return torch.triu(torch.ones(sz, sz) * float('-inf'), diagonal=1)
-
 b = Batcher()
 batch_size = 20
 eval_batch_size = 10
