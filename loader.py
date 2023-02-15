@@ -6,6 +6,9 @@ https://pytorch.org/tutorials/beginner/transformer_tutorial.html
 Provides processing of bare WikiText2 data into batches for
 training, validating, and testing the Transformer.
 """
+# Uncomment the following two lines for Colab evaluation.
+# !pip install torchdata
+# !pip install torchtext
 
 import re
 from torch.utils.data import dataset

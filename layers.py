@@ -7,9 +7,9 @@ https://pytorch.org/tutorials/beginner/transformer_tutorial.html
 
 With the source mask enabled as in the provided training loop,
 but without a target or memory mask, the model can achieve 
-a test loss of 0.81 and a test perplexity of 2.33 on the WikiText2 tutorial.
+a test loss of 0.89 and a test perplexity of 2.43 on the WikiText2 tutorial.
 =========================================================================================
-| End of training | test loss  0.84 | test ppl     2.33
+| End of training | test loss  0.89 | test ppl     2.43
 =========================================================================================
 """
 

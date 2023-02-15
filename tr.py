@@ -11,6 +11,8 @@ from torch import nn
 from layers import MyTransformer
 from loader import Batcher
 from train_eval import TrainEval
+# Comment the above three lines for Colab evaluation if all
+# code is placed in the same notebook.
 
 
 b = Batcher()

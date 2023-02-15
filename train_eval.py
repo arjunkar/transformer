@@ -54,7 +54,7 @@ class TrainEval:
             self.optimizer.step()
             if self.prof is not None:
                 self.prof.step()
-            print("Gradient step "+str(i)+" completed...")
+            # print("Gradient step "+str(i)+" completed...")
             total_loss += loss.item()
             if batch % log_interval == 0 and batch > 0:
                 lr = self.scheduler.get_last_lr()[0]
